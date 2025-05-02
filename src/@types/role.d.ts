@@ -1,0 +1,1 @@
+type IRole = 'ADMIN' | 'MEMBER';
