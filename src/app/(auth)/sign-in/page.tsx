@@ -94,7 +94,7 @@ export default function SignInPage() {
 						</div>
 
 						<Button type="submit" className="flex w-full gap-2" disabled={isSubmitting || isPending}>
-							Acessar métricas
+							Acessar
 							{(isSubmitting || isPending) && <Loader2 className="animate-spin" />}
 						</Button>
 					</form>
