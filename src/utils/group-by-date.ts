@@ -1,27 +1,23 @@
 import dayjs from 'dayjs';
 
-interface Author {
+interface ChatMessage {
 	id: string;
-	name: string;
-	avatarUrl: string;
-}
-
-interface ChatItem {
-	id: string;
-	message: string;
-	date: Date | string;
-	author: Author;
+	roomId: string;
+	senderId: string;
+	content: string;
+	createdAt: string;
+	author: { id: string; name: string; avatarUrl: string };
 }
 
 export interface IDateGroup {
 	date: string | Date;
-	messages: ChatItem[];
+	messages: ChatMessage[];
 }
 
-export function groupByDate(data: ChatItem[]): IDateGroup[] {
+export function groupByDate(data: ChatMessage[]): IDateGroup[] {
 	const map = data.reduce<Record<string, IDateGroup>>((acc, item) => {
 		// transforma o ISO em Date e formata só a parte do dia
-		const dt = dayjs(item.date);
+		const dt = dayjs(item.createdAt);
 		const key = dt.format('YYYY-MM-DD'); // chave “2025-05-03”
 
 		if (!acc[key]) {

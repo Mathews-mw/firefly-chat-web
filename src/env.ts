@@ -8,11 +8,13 @@ export const env = createEnv({
 	},
 	client: {
 		NEXT_PUBLIC_API_BASE_URL: z.string().url(),
+		NEXT_PUBLIC_WS_BASE_URL: z.string().url(),
 	},
 
 	runtimeEnv: {
 		APP_URL: process.env.APP_URL,
 		AUTH_COOKIE_NAME: process.env.AUTH_COOKIE_NAME,
 		NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+		NEXT_PUBLIC_WS_BASE_URL: process.env.NEXT_PUBLIC_WS_BASE_URL,
 	},
 });

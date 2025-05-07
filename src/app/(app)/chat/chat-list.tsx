@@ -4,41 +4,9 @@ export function ChatList() {
 	return (
 		<div>
 			<ul className="space-y-2">
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
-				<ChatItem />
+				{Array.from({ length: 20 }, (_, i) => {
+					return <ChatItem key={i} roomId={i.toString()} />;
+				})}
 			</ul>
 		</div>
 	);

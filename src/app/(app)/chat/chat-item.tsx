@@ -1,8 +1,20 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-export function ChatItem() {
+interface IProps {
+	roomId: string;
+}
+
+export function ChatItem({ roomId }: IProps) {
+	const navigate = useRouter();
+
 	return (
-		<li className="hover:bg-muted/80 flex w-full cursor-pointer gap-2 rounded-md p-2">
+		<li
+			className="hover:bg-muted/80 flex w-full cursor-pointer gap-2 rounded-md p-2"
+			onClick={() => navigate.push(`/chat/${roomId}`)}
+		>
 			<Avatar className="h-10 w-10 rounded-lg">
 				<AvatarImage src="https://api.dicebear.com/9.x/thumbs/png?seed=Gobblu" alt="@shadcn" />
 				<AvatarFallback className="rounded-lg">CN</AvatarFallback>

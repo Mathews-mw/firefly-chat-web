@@ -1,4 +1,4 @@
-import { IChatItem } from '@/dummy-data/chat-data';
+import { ChatMessage } from '@/context/chat-context';
 import { getProfileNameInitials } from '@/utils/get-profile-name-initials';
 
 import { MessageBubble } from './message-bubble';
@@ -9,7 +9,7 @@ interface IMessageGroupProps {
 	isOwn: boolean;
 	group: {
 		authorId: string;
-		messages: IChatItem[];
+		messages: ChatMessage[];
 	};
 }
 
@@ -18,7 +18,7 @@ export function MessageGroup({ isOwn, author, group }: IMessageGroupProps) {
 
 	return (
 		<div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-			<div className="flex space-x-2">
+			<div className="flex gap-2">
 				{!isOwn && (
 					<Avatar className="size-8 rounded-lg">
 						<AvatarImage src={author.avatarUrl} alt={author.name} />
@@ -28,7 +28,7 @@ export function MessageGroup({ isOwn, author, group }: IMessageGroupProps) {
 
 				<ul role="list" className="space-y-1.5">
 					{group.messages.map((msg) => (
-						<MessageBubble author={msg.author} key={msg.id} message={msg.message} isOwn={isOwn} date={msg.date} />
+						<MessageBubble author={msg.author} key={msg.id} message={msg.content} isOwn={isOwn} date={msg.createdAt} />
 					))}
 				</ul>
 

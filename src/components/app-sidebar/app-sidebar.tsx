@@ -1,16 +1,16 @@
+'use client';
+
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import Image from 'next/image';
 import { NavUser } from './nav-user';
 import { NavMain } from './nav-main';
 import { NavSecondary } from './nav-secondary';
-
-const user = {
-	name: 'Mathews Araújo',
-	email: 'mathews.mw@gmail.com',
-	avatar: 'https://1drv.ms/i/c/0852b71d1fb2ccf4/UQT0zLIfHbdSIIAI0u8BAAAAAN-irFBHrYxKLGY?width=1080&height=1072',
-};
+import { useUser } from '@/context/user-context';
+import { Skeleton } from '../ui/skeleton';
 
 export function AppSidebar() {
+	const { user } = useUser();
+
 	return (
 		<Sidebar variant="sidebar" collapsible="icon">
 			<SidebarHeader>
@@ -28,7 +28,18 @@ export function AppSidebar() {
 			</SidebarContent>
 
 			<SidebarFooter>
-				<NavUser user={user} />
+				{user ? (
+					<NavUser user={user} />
+				) : (
+					<div className="flex items-center gap-2">
+						<Skeleton className="h-8 w-8 rounded-lg" />
+
+						<div className="space-y-1">
+							<Skeleton className="h-3 w-32" />
+							<Skeleton className="h-2 w-36" />
+						</div>
+					</div>
+				)}
 			</SidebarFooter>
 		</Sidebar>
 	);

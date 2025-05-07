@@ -13,7 +13,7 @@ export async function auth() {
 	}
 
 	try {
-		const { user } = await getUserProfile();
+		const user = await getUserProfile();
 
 		return { user };
 	} catch (error) {

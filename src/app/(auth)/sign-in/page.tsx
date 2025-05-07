@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { useMutation } from '@tanstack/react-query';
 import { errorHandler } from '@/_http/error-handler/error-handler';
 import { signInWithCredentials } from '@/_http/requests/auth/sign-in-with-credentials';
+import { ThemeSwitcher } from '@/components/theme-switcher';
 
 const signInForm = z.object({
 	email: z.string().email({ message: 'E-mail inválido' }),
@@ -64,9 +65,15 @@ export default function SignInPage() {
 			</div>
 
 			<div className="flex h-full flex-col items-center justify-center">
-				<Button variant="ghost" disabled={isSubmitting} className="text-foreground absolute top-8 right-8">
-					<Link href="/">Voltar ao site</Link>
-				</Button>
+				<div className="absolute top-8 right-8 flex h-5 items-center gap-2">
+					<Button variant="ghost">
+						<Link href="/sign-up">Criar conta</Link>
+					</Button>
+
+					<Separator orientation="vertical" className="h-5" />
+
+					<ThemeSwitcher />
+				</div>
 
 				<div className="flex w-[350px] flex-col gap-6">
 					<div className="flex flex-col gap-2">

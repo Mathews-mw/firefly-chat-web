@@ -1,24 +1,28 @@
 import dayjs from 'dayjs';
 
-import { IChatItem } from '@/dummy-data/chat-data';
 import { IDateGroup } from '@/utils/group-by-date';
 
 import { MessageGroup } from './message-group';
+import { ChatMessage } from '@/context/chat-context';
 
 interface IDateGroupProps {
 	group: IDateGroup;
+	user: IUser;
 }
 
-export function DateGroup({ group }: IDateGroupProps) {
+export function DateGroup({ group, user }: IDateGroupProps) {
 	const dateFormatted = dayjs(group.date).format('DD [de] MMMM [de] YYYY');
+
+	console.log('date group: ', group);
 
 	const chatGroup = group.messages.reduce<
 		{
 			authorId: string;
-			messages: IChatItem[];
+			messages: ChatMessage[];
 		}[]
 	>((acc, msg) => {
 		const last = acc[acc.length - 1];
+		console.log('inside reduce: ', last);
 
 		if (last && last.authorId === msg.author.id) {
 			last.messages.push(msg);
@@ -30,14 +34,14 @@ export function DateGroup({ group }: IDateGroupProps) {
 	}, []);
 
 	return (
-		<div className="space-y-2">
-			<div className="flex justify-center">
+		<div className="mx-auto max-w-[80%] space-y-2">
+			<div className="mt-4 flex justify-center">
 				<time className="text-muted-foreground bg-muted/30 rounded-md p-2 text-xs">{dateFormatted}</time>
 			</div>
 
 			<div className="space-y-2">
 				{chatGroup.map((grp, i) => {
-					const isOwn = grp.authorId === 'ma001'; // Pegar do contexto de usuário
+					const isOwn = grp.authorId === user.id;
 
 					return (
 						<MessageGroup
