@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useMemo } from 'react';
+import { use, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChatMessage, useChat } from '@/context/chat-context';
 import { InfiniteData, QueryKey, useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -34,6 +34,7 @@ export default function ChatRoomPage({ params }: IProps) {
 	const { selectRoomId, send } = useChat();
 
 	const navigate = useRouter();
+	const hasMarkedRef = useRef<Set<string>>(new Set()); //impede reenvio do mesmo conjunto repetidamente.
 
 	const { data: room } = useQuery({
 		queryKey: ['room', 'PRIVATE', roomId],
@@ -73,12 +74,16 @@ export default function ChatRoomPage({ params }: IProps) {
 				.map((item) => item.chat_messages)
 				.flat(Infinity) as IChatMessageWithAuthor[];
 
+			// identifique as mensagens recebidas de outro usuário ainda não marcadas como lidas
 			const unReadMessages = chatMessagesFlatArray
 				.filter((cMsg) => cMsg.sender_id !== user?.id && cMsg.read_receipts.length === 0)
 				.map((m) => m.id);
 
-			if (unReadMessages.length) {
+			if (unReadMessages.length > 0) {
 				send('markAsRead', { roomId, messageIds: unReadMessages });
+
+				// marcar localmente para não reenviar o evento de markAsRead
+				unReadMessages.forEach((msgId) => hasMarkedRef.current.add(msgId));
 			}
 
 			return chatMessagesFlatArray.map((item) => {
@@ -97,7 +102,7 @@ export default function ChatRoomPage({ params }: IProps) {
 		}
 
 		return [];
-	}, [chatMessageHistory]);
+	}, [chatMessageHistory, roomId, user?.id, send]);
 
 	function handleLeaveRoom() {
 		selectRoomId(undefined);

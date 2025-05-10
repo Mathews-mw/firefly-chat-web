@@ -1,5 +1,6 @@
 import ReconnectingWebSocket from 'reconnecting-websocket';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
+
 import { env } from '@/env';
 
 export interface ChatMessage {
@@ -29,6 +30,7 @@ type ChatAction =
 	| { type: 'WS_CLOSE' }
 	| { type: 'WS_ERROR' }
 	| { type: 'ADD_MESSAGE'; message: ChatMessage }
+	| { type: 'MARK_AS_READ'; payload: { roomId: string; messageIds: Array<string> } }
 	| { type: 'RESET' };
 
 interface ChatContextType {
@@ -51,6 +53,19 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 			return { ...state, status: 'error' };
 		case 'ADD_MESSAGE':
 			return { ...state, messages: [...state.messages, action.message] };
+		case 'MARK_AS_READ':
+			const { messageIds } = action.payload;
+
+			return {
+				...state,
+				messages: state.messages.map((msg) => {
+					// somente atualize as mensagens marcadas e que não tenham sido lidas antes
+					if (messageIds.includes(msg.id)) {
+						return { ...msg, readAt: msg.readAt ?? new Date() };
+					}
+					return msg;
+				}),
+			};
 		case 'RESET':
 			return { status: 'connecting', messages: [] };
 		default:
@@ -95,7 +110,7 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
 		ws.addEventListener('open', () => {
 			dispatch({ type: 'WS_OPEN' });
 			// entra na sala
-			ws.send(JSON.stringify({ event: 'joinRoom', payload: { roomId: roomId } }));
+			ws.send(JSON.stringify({ event: 'joinRoom', payload: { roomId } }));
 		});
 
 		ws.onmessage = (ev) => {
@@ -106,6 +121,11 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
 
 				if (msg.event === 'message') {
 					dispatch({ type: 'ADD_MESSAGE', message: msg.payload.message });
+				}
+
+				if (msg.event === 'markAsRead') {
+					console.log('dispatch event markAsRead: ', msg.payload);
+					dispatch({ type: 'MARK_AS_READ', payload: { roomId, messageIds: msg.payload.messageIds } });
 				}
 
 				// Lembrar de tratar userJoined/userLeft aqui!!!
