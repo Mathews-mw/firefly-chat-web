@@ -1,34 +1,63 @@
 'use client';
 
+import dayjs from 'dayjs';
+import isToday from 'dayjs/plugin/isToday';
 import { useRouter } from 'next/navigation';
+
+import { useChat } from '@/context/chat-context';
+
+import { useUser } from '@/context/user-context';
+import { getProfileNameInitials } from '@/utils/get-profile-name-initials';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
+dayjs.extend(isToday);
+
 interface IProps {
-	roomId: string;
+	room: IRoomWithParticipants;
 }
 
-export function ChatItem({ roomId }: IProps) {
+export function ChatItem({ room }: IProps) {
+	const { selectRoomId } = useChat();
+	const { user } = useUser();
+
 	const navigate = useRouter();
+
+	const participant = room.participants[0];
+
+	function handleSelectRoom() {
+		selectRoomId(room.id);
+		navigate.push(`/chat/${room.id}`);
+	}
 
 	return (
 		<li
 			className="hover:bg-muted/80 flex w-full cursor-pointer gap-2 rounded-md p-2"
-			onClick={() => navigate.push(`/chat/${roomId}`)}
+			onClick={() => handleSelectRoom()}
 		>
 			<Avatar className="h-10 w-10 rounded-lg">
-				<AvatarImage src="https://api.dicebear.com/9.x/thumbs/png?seed=Gobblu" alt="@shadcn" />
-				<AvatarFallback className="rounded-lg">CN</AvatarFallback>
+				{participant.user.avatar_url && (
+					<AvatarImage src={participant.user.avatar_url} alt={`@${participant.user.username}`} />
+				)}
+				<AvatarFallback className="rounded-lg">{getProfileNameInitials(participant.user.name)}</AvatarFallback>
 			</Avatar>
 
-			<div className="space-y-0.5">
+			<div className="w-full space-y-0.5">
 				<div className="flex w-full justify-between">
-					<span className="text-sm font-semibold">Lydia Wilson</span>
-					<time className="text-muted-foreground text-xs">00:53</time>
+					<span className="text-sm font-semibold">{participant.user.name}</span>
+					{room.chat_messages.length > 0 && (
+						<time className="text-muted-foreground text-xs">
+							{dayjs(room.chat_messages[0].created_at).isToday()
+								? dayjs(room.chat_messages[0].created_at).format('HH:mm')
+								: dayjs(room.chat_messages[0].created_at).format('DD/MM')}
+						</time>
+					)}
 				</div>
-				<p className="text-muted-foreground line-clamp-1 text-xs">
-					Lorem ipsum dolor, sit amet consectetur adipisicing elit. Optio, accusamus cumque expedita, ea rerum sapiente
-					quibusdam corrupti dicta suscipit unde tenetur quas laborum. Tempora neque omnis est excepturi velit et!
-				</p>
+
+				{room.chat_messages.length > 0 && (
+					<p className="text-muted-foreground line-clamp-1 text-xs">
+						{room.chat_messages[0].author.id === user?.id && <span>Você: </span>} {room.chat_messages[0].content}
+					</p>
+				)}
 			</div>
 		</li>
 	);

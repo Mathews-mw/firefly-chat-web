@@ -2,21 +2,21 @@
 
 import dayjs from 'dayjs';
 import { twMerge } from 'tailwind-merge';
-
-import { IAuthor } from '@/dummy-data/chat-data';
 import { useEffect, useState } from 'react';
 
+import { ChatMessage } from '@/context/chat-context';
+
+import { Check, CheckCheck } from 'lucide-react';
+
 interface IMessageBubbleProps {
-	author: IAuthor;
-	message: string;
 	isOwn: boolean;
-	date: string | Date;
+	message: ChatMessage;
 }
 
-export function MessageBubble({ isOwn, message, date, author }: IMessageBubbleProps) {
+export function MessageBubble({ isOwn, message }: IMessageBubbleProps) {
 	const [mounted, setMounted] = useState(false);
 
-	const authorName = isOwn ? 'Você' : author.name;
+	const authorName = isOwn ? 'Você' : message.author.name;
 
 	useEffect(() => {
 		// dispara a animação logo depois do primeiro paint
@@ -35,10 +35,11 @@ export function MessageBubble({ isOwn, message, date, author }: IMessageBubblePr
 		>
 			<span className="text-xs font-bold">{authorName}</span>
 
-			<p className="font-light text-pretty">{message}</p>
+			<p className="font-light text-pretty">{message.content}</p>
 
-			<div className="flex w-full justify-end">
-				<time className="text-muted-foreground text-xs">{dayjs(date).format('HH:mm')}</time>
+			<div className="text-muted-foreground flex w-full items-center justify-end gap-0.5">
+				<time className="text-xs">{dayjs(message.createdAt).format('HH:mm')}</time>
+				{isOwn && <>{message.readAt ? <CheckCheck className="size-3.5" /> : <Check className="size-3" />}</>}
 			</div>
 		</li>
 	);

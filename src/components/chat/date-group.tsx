@@ -1,3 +1,5 @@
+'use client';
+
 import dayjs from 'dayjs';
 
 import { IDateGroup } from '@/utils/group-by-date';
@@ -13,8 +15,6 @@ interface IDateGroupProps {
 export function DateGroup({ group, user }: IDateGroupProps) {
 	const dateFormatted = dayjs(group.date).format('DD [de] MMMM [de] YYYY');
 
-	console.log('date group: ', group);
-
 	const chatGroup = group.messages.reduce<
 		{
 			authorId: string;
@@ -22,7 +22,6 @@ export function DateGroup({ group, user }: IDateGroupProps) {
 		}[]
 	>((acc, msg) => {
 		const last = acc[acc.length - 1];
-		console.log('inside reduce: ', last);
 
 		if (last && last.authorId === msg.author.id) {
 			last.messages.push(msg);

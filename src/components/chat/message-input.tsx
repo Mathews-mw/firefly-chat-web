@@ -1,4 +1,4 @@
-import { ComponentProps, KeyboardEvent } from 'react';
+import { ComponentProps, KeyboardEvent, useCallback, useState } from 'react';
 import { twMerge } from 'tailwind-merge';
 
 import { Button } from '../ui/button';
@@ -7,16 +7,24 @@ import { Separator } from '../ui/separator';
 import { FaceSmileIcon, PaperAirplaneIcon, PaperClipIcon } from '@heroicons/react/24/outline';
 
 interface IProps extends ComponentProps<'div'> {
-	value?: string;
-	onChangeValue: (value: string) => void;
-	onSendMessage: () => void;
+	disabled?: boolean;
+	onSendMessage: (text: string) => void;
 }
 
-export function MessageInput({ value, onChangeValue, onSendMessage, className, ...props }: IProps) {
+export function MessageInput({ disabled = false, onSendMessage, className, ...props }: IProps) {
+	const [draft, setDraft] = useState('');
+
+	const handleSendMessage = useCallback(() => {
+		if (draft.trim()) {
+			onSendMessage(draft);
+			setDraft('');
+		}
+	}, [draft, onSendMessage]);
+
 	const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
 		if (event.key === 'Enter' && !event.shiftKey) {
 			event.preventDefault();
-			onSendMessage();
+			handleSendMessage();
 		}
 	};
 
@@ -31,8 +39,8 @@ export function MessageInput({ value, onChangeValue, onSendMessage, className, .
 		>
 			<textarea
 				placeholder="Digite uma mensagem..."
-				value={value}
-				onChange={(e) => onChangeValue(e.target.value)}
+				value={draft}
+				onChange={(e) => setDraft(e.target.value)}
 				onKeyDown={handleKeyDown}
 				className={twMerge([
 					'field-sizing-content max-h-48 min-h-9 resize-none px-3 py-1 text-start font-light outline-0',
@@ -52,7 +60,7 @@ export function MessageInput({ value, onChangeValue, onSendMessage, className, .
 
 				<Separator orientation="vertical" className="h-5" />
 
-				<Button variant="ghost" size="sm" onClick={onSendMessage}>
+				<Button variant="ghost" size="sm" onClick={handleSendMessage} disabled={disabled || draft === ''}>
 					<PaperAirplaneIcon className="size-5" />
 				</Button>
 			</div>

@@ -1,13 +1,5 @@
 import dayjs from 'dayjs';
-
-interface ChatMessage {
-	id: string;
-	roomId: string;
-	senderId: string;
-	content: string;
-	createdAt: string;
-	author: { id: string; name: string; avatarUrl: string };
-}
+import { ChatMessage } from '@/context/chat-context';
 
 export interface IDateGroup {
 	date: string | Date;

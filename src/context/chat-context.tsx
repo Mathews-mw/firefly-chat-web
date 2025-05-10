@@ -1,5 +1,5 @@
 import ReconnectingWebSocket from 'reconnecting-websocket';
-import { createContext, ReactNode, useContext, useEffect, useReducer, useRef } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
 import { env } from '@/env';
 
 export interface ChatMessage {
@@ -7,14 +7,17 @@ export interface ChatMessage {
 	roomId: string;
 	senderId: string;
 	content: string;
-	createdAt: string;
-	author: { id: string; name: string; avatarUrl: string };
+	createdAt: Date;
+	readAt?: Date;
+	author: { id: string; name: string; avatarUrl?: string };
 }
 
 type ChatEvent =
-	| { event: 'message'; payload: ChatMessage }
 	| { event: 'userJoined'; payload: { roomId: string; userId: string } }
-	| { event: 'userLeft'; payload: { roomId: string; userId: string } };
+	| { event: 'userLeft'; payload: { roomId: string; userId: string } }
+	| { event: 'message'; payload: { roomId: string; message: ChatMessage } }
+	| { event: 'sendMessage'; payload: { roomId: string; content: string } }
+	| { event: 'markAsRead'; payload: { roomId: string; messageIds: Array<string> } };
 
 interface ChatState {
 	status: 'connecting' | 'open' | 'closed' | 'error';
@@ -30,7 +33,10 @@ type ChatAction =
 
 interface ChatContextType {
 	state: ChatState;
-	send: (event: string, payload: unknown) => void;
+	send: <K extends keyof ChatEvent>(event: ChatEvent[K], payload: unknown) => void;
+	// send: (event: string, payload: unknown) => void;
+	roomId?: string;
+	selectRoomId: (room?: string) => void;
 }
 
 export const ChatContext = createContext({} as ChatContextType);
@@ -52,15 +58,9 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 	}
 }
 
-export function ChatContextProvider({
-	children,
-	roomId,
-	jwtToken,
-}: {
-	children: ReactNode;
-	roomId: string;
-	jwtToken: string;
-}) {
+export function ChatContextProvider({ children }: { children: ReactNode }) {
+	const [roomId, setRoomId] = useState<string | undefined>(undefined);
+
 	const [state, dispatch] = useReducer(chatReducer, {
 		status: 'connecting',
 		messages: [],
@@ -68,7 +68,11 @@ export function ChatContextProvider({
 
 	const wsRef = useRef<ReconnectingWebSocket | null>(null);
 
-	function send(event: string, payload: unknown) {
+	const selectRoomId = useCallback((roomId?: string) => {
+		setRoomId(roomId);
+	}, []);
+
+	function send<K extends keyof ChatEvent>(event: ChatEvent[K], payload: unknown) {
 		if (state.status === 'open' && wsRef.current) {
 			wsRef.current.send(JSON.stringify({ event, payload }));
 		}
@@ -77,8 +81,10 @@ export function ChatContextProvider({
 	useEffect(() => {
 		dispatch({ type: 'RESET' });
 
+		if (!roomId) return;
+
 		const url = `${env.NEXT_PUBLIC_WS_BASE_URL}/ws/chat/members`;
-		const ws = new ReconnectingWebSocket(`${url}?token=${jwtToken}`, [], {
+		const ws = new ReconnectingWebSocket(url, [], {
 			maxRetries: 5,
 			maxReconnectionDelay: 1000 * 3, // 3 seconds
 			connectionTimeout: 1000 * 10, // 10 seconds
@@ -89,36 +95,41 @@ export function ChatContextProvider({
 		ws.addEventListener('open', () => {
 			dispatch({ type: 'WS_OPEN' });
 			// entra na sala
-			ws.send(JSON.stringify({ event: 'joinRoom', payload: { roomId } }));
+			ws.send(JSON.stringify({ event: 'joinRoom', payload: { roomId: roomId } }));
 		});
 
 		ws.onmessage = (ev) => {
 			try {
 				const msg: ChatEvent = JSON.parse(ev.data);
 
-				console.log('ctx msg: ', msg);
+				console.log('ctx receive msg: ', msg);
 
 				if (msg.event === 'message') {
-					dispatch({ type: 'ADD_MESSAGE', message: msg.payload });
+					dispatch({ type: 'ADD_MESSAGE', message: msg.payload.message });
 				}
 
 				// Lembrar de tratar userJoined/userLeft aqui!!!
 			} catch (error) {
-				console.log('Erro ao tentar fazer parser mensagem WS: ', error);
+				console.warn('Erro ao tentar fazer parser mensagem WS: ', error);
 			}
 		};
 
-		ws.onerror = () => dispatch({ type: 'WS_ERROR' });
+		ws.onerror = (error) => {
+			console.warn('websocket error: ', error);
+			dispatch({ type: 'WS_ERROR' });
+		};
+
 		ws.onclose = () => dispatch({ type: 'WS_CLOSE' });
 
 		return () => {
 			// sai da sala e fecha WS
-			ws.send(JSON.stringify({ event: 'leaveRoom', payload: { roomId } }));
+			ws.send(JSON.stringify({ event: 'leaveRoom', payload: { roomId: roomId } }));
+			setRoomId(undefined);
 			ws.close();
 		};
-	}, [roomId, jwtToken]);
+	}, [roomId, selectRoomId]);
 
-	return <ChatContext.Provider value={{ state, send }}>{children}</ChatContext.Provider>;
+	return <ChatContext.Provider value={{ state, send, roomId, selectRoomId }}>{children}</ChatContext.Provider>;
 }
 
 export function useChat() {

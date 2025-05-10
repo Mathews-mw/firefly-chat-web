@@ -49,9 +49,9 @@ export default function SignInPage() {
 				password: data.password,
 			});
 
-			router.replace('/chat');
+			router.replace('/home');
 		} catch (error) {
-			errorHandler(error);
+			errorHandler({ error, showErrorCode: false });
 		}
 	}
 

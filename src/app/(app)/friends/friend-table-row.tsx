@@ -1,3 +1,5 @@
+'use client';
+
 import { getProfileNameInitials } from '@/utils/get-profile-name-initials';
 
 import { Button } from '@/components/ui/button';
@@ -6,6 +8,12 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 import { ChatBubbleOvalLeftEllipsisIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useRouter } from 'next/navigation';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createRoom } from '@/_http/requests/chat/create-room';
+import { useUser } from '@/context/user-context';
+import { Loader2 } from 'lucide-react';
 
 interface IProps {
 	friend: IFriendshipWithFriend;
@@ -13,7 +21,25 @@ interface IProps {
 }
 
 export function FriendTableRow({ friend, status }: IProps) {
+	const { user } = useUser();
+
+	const navigate = useRouter();
+	const queryClient = useQueryClient();
+
 	const initials = getProfileNameInitials(friend.friend.name);
+
+	const { mutateAsync: createRoomFn, isPending } = useMutation({
+		mutationFn: createRoom,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['rooms', 'private', user?.id] });
+		},
+	});
+
+	async function handleStartChat() {
+		const { room_id } = await createRoomFn({ guestId: friend.friend_id });
+
+		navigate.push(`/chat/${room_id}`);
+	}
 
 	return (
 		<TableRow>
@@ -35,9 +61,22 @@ export function FriendTableRow({ friend, status }: IProps) {
 			</TableCell>
 
 			<TableCell className="text-right">
-				<Button size="sm" variant="ghost">
-					<ChatBubbleOvalLeftEllipsisIcon className="size-6" />
-				</Button>
+				<TooltipProvider>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button size="sm" variant="ghost" onClick={() => handleStartChat()}>
+								{isPending ? (
+									<Loader2 className="text-muted-foreground size-5 animate-spin" />
+								) : (
+									<ChatBubbleOvalLeftEllipsisIcon className="size-6" />
+								)}
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>
+							<p>Conversar com {friend.friend.name}</p>
+						</TooltipContent>
+					</Tooltip>
+				</TooltipProvider>
 			</TableCell>
 			<TableCell className="w-[46px] text-right">
 				<Button size="sm" variant="ghost">
