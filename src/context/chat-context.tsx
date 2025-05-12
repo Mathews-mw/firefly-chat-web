@@ -8,7 +8,9 @@ export interface ChatMessage {
 	roomId: string;
 	senderId: string;
 	content: string;
+	isDeleted: boolean;
 	createdAt: Date;
+	updatedAt?: Date;
 	readAt?: Date;
 	author: { id: string; name: string; avatarUrl?: string };
 }
@@ -18,7 +20,12 @@ type ChatEvent =
 	| { event: 'userLeft'; payload: { roomId: string; userId: string } }
 	| { event: 'message'; payload: { roomId: string; message: ChatMessage } }
 	| { event: 'sendMessage'; payload: { roomId: string; content: string } }
-	| { event: 'markAsRead'; payload: { roomId: string; messageIds: Array<string> } };
+	| { event: 'editMessage'; payload: { roomId: string; messageId: string; content: string } }
+	| { event: 'deleteMessage'; payload: { roomId: string; messageId: string } }
+	| { event: 'markAsRead'; payload: { roomId: string; messageIds: Array<string> } }
+	| { event: 'messageRead'; payload: { roomId: string; messageIds: Array<string> } }
+	| { event: 'messageEdited'; payload: { roomId: string; message: ChatMessage } }
+	| { event: 'messageDeleted'; payload: { roomId: string; messageId: string } };
 
 interface ChatState {
 	status: 'connecting' | 'open' | 'closed' | 'error';
@@ -29,16 +36,25 @@ type ChatAction =
 	| { type: 'WS_OPEN' }
 	| { type: 'WS_CLOSE' }
 	| { type: 'WS_ERROR' }
+	| { type: 'LOAD_HISTORY'; payload: ChatMessage[] }
 	| { type: 'ADD_MESSAGE'; message: ChatMessage }
+	| { type: 'EDIT_MESSAGE'; payload: { roomId: string; message: ChatMessage } }
+	| { type: 'DELETE_MESSAGE'; payload: { roomId: string; messageId: string } }
 	| { type: 'MARK_AS_READ'; payload: { roomId: string; messageIds: Array<string> } }
 	| { type: 'RESET' };
 
+type EventPayload<E extends ChatEvent['event']> = Extract<ChatEvent, { event: E }>['payload'];
+
+type SendEvent = {
+	[E in ChatEvent['event']]: { event: E; payload: EventPayload<E> };
+}[ChatEvent['event']];
+
 interface ChatContextType {
 	state: ChatState;
-	send: <K extends keyof ChatEvent>(event: ChatEvent[K], payload: unknown) => void;
-	// send: (event: string, payload: unknown) => void;
 	roomId?: string;
 	selectRoomId: (room?: string) => void;
+	send: (event: SendEvent) => void;
+	loadHistory: (msgs: Array<ChatMessage>) => void;
 }
 
 export const ChatContext = createContext({} as ChatContextType);
@@ -51,6 +67,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 			return { ...state, status: 'closed' };
 		case 'WS_ERROR':
 			return { ...state, status: 'error' };
+		case 'LOAD_HISTORY':
+			return {
+				...state,
+				messages: [...action.payload, ...state.messages],
+			};
 		case 'ADD_MESSAGE':
 			return { ...state, messages: [...state.messages, action.message] };
 		case 'MARK_AS_READ':
@@ -59,13 +80,37 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 			return {
 				...state,
 				messages: state.messages.map((msg) => {
-					// somente atualize as mensagens marcadas e que não tenham sido lidas antes
 					if (messageIds.includes(msg.id)) {
 						return { ...msg, readAt: msg.readAt ?? new Date() };
 					}
 					return msg;
 				}),
 			};
+		case 'EDIT_MESSAGE':
+			const { message } = action.payload;
+
+			return {
+				...state,
+				messages: state.messages.map((msg) => {
+					if (msg.id === message.id) {
+						return { ...msg, content: message.content, updatedAt: message.updatedAt };
+					}
+					return msg;
+				}),
+			};
+
+		case 'DELETE_MESSAGE':
+			const { messageId } = action.payload;
+			return {
+				...state,
+				messages: state.messages.map((msg) => {
+					if (msg.id === messageId) {
+						return { ...msg, isDeleted: true };
+					}
+					return msg;
+				}),
+			};
+
 		case 'RESET':
 			return { status: 'connecting', messages: [] };
 		default:
@@ -87,11 +132,15 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
 		setRoomId(roomId);
 	}, []);
 
-	function send<K extends keyof ChatEvent>(event: ChatEvent[K], payload: unknown) {
+	function send({ event, payload }: SendEvent) {
 		if (state.status === 'open' && wsRef.current) {
 			wsRef.current.send(JSON.stringify({ event, payload }));
 		}
 	}
+
+	const loadHistory = useCallback((msgs: ChatMessage[]) => {
+		dispatch({ type: 'LOAD_HISTORY', payload: msgs });
+	}, []);
 
 	useEffect(() => {
 		dispatch({ type: 'RESET' });
@@ -123,9 +172,16 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: 'ADD_MESSAGE', message: msg.payload.message });
 				}
 
-				if (msg.event === 'markAsRead') {
-					console.log('dispatch event markAsRead: ', msg.payload);
+				if (msg.event === 'messageEdited') {
+					dispatch({ type: 'EDIT_MESSAGE', payload: { roomId: msg.payload.roomId, message: msg.payload.message } });
+				}
+
+				if (msg.event === 'messageRead') {
 					dispatch({ type: 'MARK_AS_READ', payload: { roomId, messageIds: msg.payload.messageIds } });
+				}
+
+				if (msg.event === 'messageDeleted') {
+					dispatch({ type: 'DELETE_MESSAGE', payload: { roomId, messageId: msg.payload.messageId } });
 				}
 
 				// Lembrar de tratar userJoined/userLeft aqui!!!
@@ -149,7 +205,9 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
 		};
 	}, [roomId, selectRoomId]);
 
-	return <ChatContext.Provider value={{ state, send, roomId, selectRoomId }}>{children}</ChatContext.Provider>;
+	return (
+		<ChatContext.Provider value={{ state, roomId, selectRoomId, send, loadHistory }}>{children}</ChatContext.Provider>
+	);
 }
 
 export function useChat() {

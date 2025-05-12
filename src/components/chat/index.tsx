@@ -38,49 +38,42 @@ export function ChatComponent({
 	const { ref: inViewRef, inView } = useInView();
 
 	const {
-		state: { messages, status },
+		state: { messages },
 		send,
 	} = useChat();
 
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	const chatGroupedByDate = useMemo(() => {
-		if (olderMessages.length > 0) {
-			olderMessages.reverse();
-			return groupByDate([...olderMessages, ...messages]);
-		}
+		// if (olderMessages.length > 0) {
+		// 	olderMessages.reverse();
+		// 	return groupByDate([...olderMessages, ...messages]);
+		// }
 
 		return groupByDate(messages);
-	}, [messages, olderMessages]);
+	}, [messages]);
 
 	function handleSendMessage(content: string) {
 		if (!content.trim()) return;
 
-		send('sendMessage', { roomId, content });
+		send({ event: 'sendMessage', payload: { roomId, content } });
 	}
 
 	useEffect(() => {
 		const el = containerRef.current;
 
 		if (el) {
-			if (initialLoading) {
-				el.scrollTop = el.scrollHeight;
-				return;
+			if (el) {
+				if (inView && isFetchingNextPage) {
+					el.scrollTop = el.scrollTop + 450;
+					console.log('finaliza o scroll aqui');
+					return;
+				}
 			}
 
 			el.scrollTop = el.scrollHeight; // força o scroll até o fim
 		}
-	}, [initialLoading, messages]);
-
-	useEffect(() => {
-		const el = containerRef.current;
-
-		if (el) {
-			if (inView && isFetchingNextPage) {
-				el.scrollTop = el.scrollTop + 300;
-			}
-		}
-	}, [inView, isFetchingNextPage]);
+	}, [messages, isFetchingNextPage, inView]);
 
 	useEffect(() => {
 		if (inView) {

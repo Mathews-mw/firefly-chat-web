@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useMemo, useRef } from 'react';
+import { use, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChatMessage, useChat } from '@/context/chat-context';
 import { InfiniteData, QueryKey, useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -31,10 +31,17 @@ export default function ChatRoomPage({ params }: IProps) {
 	const { roomId } = use(params);
 
 	const { user } = useUser();
-	const { selectRoomId, send } = useChat();
+	const {
+		selectRoomId,
+		send,
+		loadHistory,
+		state: { messages },
+	} = useChat();
 
 	const navigate = useRouter();
-	const hasMarkedRef = useRef<Set<string>>(new Set()); //impede reenvio do mesmo conjunto repetidamente.
+
+	const loadedHistoryRef = useRef(false); // ref para garantir que o histórico só seja injetado uma vez.
+	const hasMarkedRef = useRef<Set<string>>(new Set()); // impede reenvio do mesmo conjunto repetidamente.
 
 	const { data: room } = useQuery({
 		queryKey: ['room', 'PRIVATE', roomId],
@@ -66,49 +73,78 @@ export default function ChatRoomPage({ params }: IProps) {
 		getNextPageParam: (lastPage) => lastPage.cursor.next_cursor,
 		enabled: !!user,
 		refetchOnWindowFocus: false,
+		staleTime: 1000 * 30, // 30 seconds
 	});
 
-	const chatMessagesGroped = useMemo(() => {
-		if (chatMessageHistory) {
-			const chatMessagesFlatArray = chatMessageHistory.pages
-				.map((item) => item.chat_messages)
-				.flat(Infinity) as IChatMessageWithAuthor[];
+	const flatHistoryMessages = useMemo(() => {
+		if (!chatMessageHistory) return [];
 
-			// identifique as mensagens recebidas de outro usuário ainda não marcadas como lidas
-			const unReadMessages = chatMessagesFlatArray
-				.filter((cMsg) => cMsg.sender_id !== user?.id && cMsg.read_receipts.length === 0)
-				.map((m) => m.id);
+		// return chatMessageHistory.pages
+		// 	.flatMap((page) => page.chat_messages)
+		// 	.map((item) => {
+		// 		const chatMessage: ChatMessage = {
+		// 			id: item.id,
+		// 			roomId: item.room_id,
+		// 			senderId: item.sender_id,
+		// 			content: item.content,
+		// 			createdAt: item.created_at,
+		// 			readAt: item.read_receipts.length ? item.read_receipts[0].read_at : undefined,
+		// 			author: { id: item.author.id, name: item.author.name, avatarUrl: item.author.avatar_url ?? undefined },
+		// 		};
 
-			if (unReadMessages.length > 0) {
-				send('markAsRead', { roomId, messageIds: unReadMessages });
+		// 		return chatMessage;
+		// 	});
 
-				// marcar localmente para não reenviar o evento de markAsRead
-				unReadMessages.forEach((msgId) => hasMarkedRef.current.add(msgId));
-			}
-
-			return chatMessagesFlatArray.map((item) => {
+		return chatMessageHistory.pages[chatMessageHistory.pages.length - 1].chat_messages
+			.map((item) => {
 				const chatMessage: ChatMessage = {
 					id: item.id,
 					roomId: item.room_id,
 					senderId: item.sender_id,
 					content: item.content,
 					createdAt: item.created_at,
+					isDeleted: item.is_deleted,
 					readAt: item.read_receipts.length ? item.read_receipts[0].read_at : undefined,
 					author: { id: item.author.id, name: item.author.name, avatarUrl: item.author.avatar_url ?? undefined },
 				};
 
 				return chatMessage;
-			});
-		}
+			})
+			.reverse();
+	}, [chatMessageHistory]);
 
-		return [];
-	}, [chatMessageHistory, roomId, user?.id, send]);
+	// const allMessages = useMemo(() => {
+	// 	return [...flatHistoryMessages, ...liveMessages];
+	// }, [flatHistoryMessages, liveMessages]);
 
 	function handleLeaveRoom() {
 		selectRoomId(undefined);
 
 		navigate.push('/chat');
 	}
+
+	useEffect(() => {
+		if (flatHistoryMessages.length > 0) {
+			loadHistory(flatHistoryMessages);
+			loadedHistoryRef.current = true;
+		}
+	}, [flatHistoryMessages, loadHistory]);
+
+	useEffect(() => {
+		if (!messages.length || !user) return;
+
+		// identifica as mensagens recebidas de outro usuário ainda não marcadas como lidas
+		const unReadMessages = messages
+			.filter((msg) => msg.senderId !== user?.id && !msg.readAt && !hasMarkedRef.current.has(msg.id))
+			.map((m) => m.id);
+
+		// Problema tá aqui
+		if (unReadMessages.length > 0) {
+			send({ event: 'markAsRead', payload: { roomId, messageIds: unReadMessages } });
+			// marcar localmente para não reenviar o evento de markAsRead
+			unReadMessages.forEach((msgId) => hasMarkedRef.current.add(msgId));
+		}
+	}, [messages, roomId, user, send]);
 
 	return (
 		<div className="flex w-full flex-col gap-4">
@@ -208,7 +244,7 @@ export default function ChatRoomPage({ params }: IProps) {
 				<ChatComponent
 					roomId={roomId}
 					user={user}
-					olderMessages={chatMessagesGroped}
+					olderMessages={messages}
 					isFetching={isFetching}
 					hasNextPage={hasNextPage}
 					isFetchingNextPage={isFetchingNextPage}

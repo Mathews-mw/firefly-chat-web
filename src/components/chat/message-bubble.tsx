@@ -4,9 +4,13 @@ import dayjs from 'dayjs';
 import { twMerge } from 'tailwind-merge';
 import { useEffect, useState } from 'react';
 
-import { ChatMessage } from '@/context/chat-context';
+import { ChatMessage, useChat } from '@/context/chat-context';
 
-import { Check, CheckCheck } from 'lucide-react';
+import { Button } from '../ui/button';
+import { EditMessageInput } from './edit-message-input';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
+
+import { Check, CheckCheck, Reply, SquarePen, Trash2 } from 'lucide-react';
 
 interface IMessageBubbleProps {
 	isOwn: boolean;
@@ -15,8 +19,23 @@ interface IMessageBubbleProps {
 
 export function MessageBubble({ isOwn, message }: IMessageBubbleProps) {
 	const [mounted, setMounted] = useState(false);
+	const [editMessage, setEditMessage] = useState(false);
+
+	const { send } = useChat();
 
 	const authorName = isOwn ? 'Você' : message.author.name;
+
+	function handleEditMessage(content: string) {
+		if (!content.trim()) return;
+
+		send({ event: 'editMessage', payload: { messageId: message.id, roomId: message.roomId, content } });
+		setEditMessage(false);
+	}
+
+	function handleDeleteMessage() {
+		send({ event: 'deleteMessage', payload: { messageId: message.id, roomId: message.roomId } });
+		setEditMessage(false);
+	}
 
 	useEffect(() => {
 		// dispara a animação logo depois do primeiro paint
@@ -24,23 +43,71 @@ export function MessageBubble({ isOwn, message }: IMessageBubbleProps) {
 	}, []);
 
 	return (
-		<li
-			role="listitem"
-			className={twMerge([
-				'w-fit max-w-[520px] space-y-1 rounded-md px-4 py-2 text-sm',
-				'transform transition duration-300 ease-out',
-				mounted ? 'scale-100 opacity-100' : 'scale-95 opacity-0',
-				isOwn ? 'bg-primary/20 ml-auto first:rounded-tr-none' : 'bg-muted/80 mr-auto first:rounded-tl-none',
-			])}
-		>
-			<span className="text-xs font-bold">{authorName}</span>
+		<>
+			{editMessage ? (
+				<div className="max-w-[520px]">
+					<EditMessageInput
+						initialContent={message.content}
+						onClose={() => setEditMessage(false)}
+						onSendMessage={(msg) => handleEditMessage(msg)}
+					/>
+				</div>
+			) : (
+				<ContextMenu>
+					<ContextMenuTrigger asChild>
+						<li
+							role="listitem"
+							className={twMerge([
+								'w-fit max-w-[520px] space-y-1 rounded-md px-3 py-2 text-sm',
+								'transform transition duration-300 ease-out hover:cursor-pointer',
+								mounted ? 'scale-100 opacity-100' : 'scale-95 opacity-0',
+								isOwn ? 'bg-primary/20 ml-auto first:rounded-tr-none' : 'bg-muted/80 mr-auto first:rounded-tl-none',
+							])}
+						>
+							{!message.isDeleted && <span className="text-xs font-bold hover:cursor-text">{authorName}</span>}
 
-			<p className="font-light text-pretty">{message.content}</p>
+							{message.isDeleted ? (
+								<div className="flex items-center gap-1">
+									<p className="text-xs">Está mensagem foi excluída.</p>
+									<Button variant="link" size="xs" className="text-xs">
+										Desfazer
+									</Button>
+								</div>
+							) : (
+								<p className="font-light text-pretty hover:cursor-text">{message.content}</p>
+							)}
 
-			<div className="text-muted-foreground flex w-full items-center justify-end gap-0.5">
-				<time className="text-xs">{dayjs(message.createdAt).format('HH:mm')}</time>
-				{isOwn && <>{message.readAt ? <CheckCheck className="size-3.5" /> : <Check className="size-3" />}</>}
-			</div>
-		</li>
+							{!message.isDeleted && (
+								<div className="text-muted-foreground flex w-full items-center justify-end gap-0.5">
+									<time className="text-xs hover:cursor-text">{dayjs(message.createdAt).format('HH:mm')}</time>
+									{isOwn && <>{message.readAt ? <CheckCheck className="size-3.5" /> : <Check className="size-3" />}</>}
+								</div>
+							)}
+						</li>
+					</ContextMenuTrigger>
+
+					<ContextMenuContent>
+						<ContextMenuItem>
+							<Reply />
+							Responder
+						</ContextMenuItem>
+
+						{isOwn && (
+							<ContextMenuItem onClick={() => setEditMessage(true)}>
+								<SquarePen />
+								Editar
+							</ContextMenuItem>
+						)}
+
+						{isOwn && (
+							<ContextMenuItem onClick={() => handleDeleteMessage()}>
+								<Trash2 />
+								Apagar
+							</ContextMenuItem>
+						)}
+					</ContextMenuContent>
+				</ContextMenu>
+			)}
+		</>
 	);
 }

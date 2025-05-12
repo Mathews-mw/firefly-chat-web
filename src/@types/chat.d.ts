@@ -17,6 +17,7 @@ interface IChatMessage {
 	room_id: string;
 	sender_id: string;
 	content: string;
+	is_deleted: boolean;
 	created_at: Date;
 	updated_at?: Date | null;
 }

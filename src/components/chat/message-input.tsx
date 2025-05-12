@@ -1,5 +1,5 @@
-import { ComponentProps, KeyboardEvent, useCallback, useState } from 'react';
 import { twMerge } from 'tailwind-merge';
+import { ComponentProps, KeyboardEvent, useCallback, useState } from 'react';
 
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
@@ -13,6 +13,7 @@ interface IProps extends ComponentProps<'div'> {
 
 export function MessageInput({ disabled = false, onSendMessage, className, ...props }: IProps) {
 	const [draft, setDraft] = useState('');
+	const [isOpenEmojiPicker, setIsOpenEmojiPicker] = useState(false);
 
 	const handleSendMessage = useCallback(() => {
 		if (draft.trim()) {
@@ -50,11 +51,12 @@ export function MessageInput({ disabled = false, onSendMessage, className, ...pr
 
 			<div className="flex gap-2">
 				<div className="flex">
+					<Button variant="ghost" size="sm" onClick={() => setIsOpenEmojiPicker(!isOpenEmojiPicker)}>
+						<FaceSmileIcon className="size-5" />
+					</Button>
+
 					<Button variant="ghost" size="sm">
 						<PaperClipIcon className="size-5" />
-					</Button>
-					<Button variant="ghost" size="sm">
-						<FaceSmileIcon className="size-5" />
 					</Button>
 				</div>
 
