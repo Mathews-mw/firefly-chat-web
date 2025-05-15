@@ -13,6 +13,12 @@ export interface ChatMessage {
 	updatedAt?: Date;
 	readAt?: Date;
 	author: { id: string; name: string; avatarUrl?: string };
+	attachments?: Array<{
+		id: string;
+		title: string;
+		url: string;
+		type: AttachmentType;
+	}>;
 }
 
 type ChatEvent =
@@ -20,6 +26,7 @@ type ChatEvent =
 	| { event: 'userLeft'; payload: { roomId: string; userId: string } }
 	| { event: 'message'; payload: { roomId: string; message: ChatMessage } }
 	| { event: 'sendMessage'; payload: { roomId: string; content: string } }
+	| { event: 'sendAttachmentMessage'; payload: { roomId: string; attachmentIds: Array<string> } }
 	| { event: 'editMessage'; payload: { roomId: string; messageId: string; content: string } }
 	| { event: 'deleteMessage'; payload: { roomId: string; messageId: string } }
 	| { event: 'markAsRead'; payload: { roomId: string; messageIds: Array<string> } }

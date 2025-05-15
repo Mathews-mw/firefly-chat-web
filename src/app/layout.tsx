@@ -12,6 +12,7 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { UserContextProvider } from '@/context/user-context';
 import { TanstackQueryClientProvider } from '@/providers/tanstack-query-client-provider';
+import { AppProvider } from '@/providers/app-provider';
 
 dayjs.locale('pt-br');
 dayjs.extend(utc);
@@ -43,7 +44,9 @@ export default function RootLayout({
 			<body className={`${inter.className} h-screen antialiased`}>
 				<TanstackQueryClientProvider>
 					<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-						<UserContextProvider>{children}</UserContextProvider>
+						<AppProvider>
+							<UserContextProvider>{children}</UserContextProvider>
+						</AppProvider>
 					</ThemeProvider>
 				</TanstackQueryClientProvider>
 

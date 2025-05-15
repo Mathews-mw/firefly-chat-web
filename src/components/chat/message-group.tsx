@@ -1,7 +1,7 @@
 import { ChatMessage } from '@/context/chat-context';
 import { getProfileNameInitials } from '@/utils/get-profile-name-initials';
 
-import { MessageBubble } from './message-bubble';
+import { MessageBubble } from './message-bubble/message-bubble';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
 interface IMessageGroupProps {

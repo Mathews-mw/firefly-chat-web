@@ -45,11 +45,6 @@ export function ChatComponent({
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	const chatGroupedByDate = useMemo(() => {
-		// if (olderMessages.length > 0) {
-		// 	olderMessages.reverse();
-		// 	return groupByDate([...olderMessages, ...messages]);
-		// }
-
 		return groupByDate(messages);
 	}, [messages]);
 

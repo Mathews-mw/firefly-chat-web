@@ -40,4 +40,10 @@ interface IRoomWithParticipants extends IRoom {
 interface IChatMessageWithAuthor extends IChatMessage {
 	author: IUser;
 	read_receipts: Array<IReadReceipt>;
+	attachments: Array<IAttachment>;
+}
+
+interface IRoomDetails {
+	participants: Array<IParticipantWithUser>;
+	attachments: Partial<Record<AttachmentType, IAttachment[]>>;
 }

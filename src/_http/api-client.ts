@@ -1,6 +1,8 @@
 import ky, { HTTPError } from 'ky';
-import { env } from '@/env';
 import { type CookiesFn, getCookie } from 'cookies-next';
+
+import { env } from '@/env';
+import { authEmitter } from '@/events/auth-events';
 import { ApiExceptionsError } from './error-handler/api-exceptions-error';
 
 export const api = ky.create({
@@ -34,6 +36,19 @@ export const api = ky.create({
 
 				if (token) {
 					request.headers.set('Authorization', `Bearer ${token}`);
+				}
+			},
+		],
+		beforeRetry: [
+			async ({ error }) => {
+				if (error instanceof ApiExceptionsError && error.code === 'AUTH_EXPIRED_TOKEN_ERROR') {
+					try {
+						await ky.patch(`${env.NEXT_PUBLIC_API_BASE_URL}/api/auth/refresh-token`, {
+							credentials: 'include',
+						});
+					} catch {
+						authEmitter.emit('logout');
+					}
 				}
 			},
 		],

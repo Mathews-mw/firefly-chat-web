@@ -9,6 +9,7 @@ import { useChat } from '@/context/chat-context';
 import { useUser } from '@/context/user-context';
 import { getProfileNameInitials } from '@/utils/get-profile-name-initials';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Paperclip } from 'lucide-react';
 
 dayjs.extend(isToday);
 
@@ -55,7 +56,14 @@ export function ChatItem({ room }: IProps) {
 
 				{room.chat_messages.length > 0 && (
 					<p className="text-muted-foreground line-clamp-1 text-xs">
-						{room.chat_messages[0].author.id === user?.id && <span>Você: </span>} {room.chat_messages[0].content}
+						{room.chat_messages[0].author.id === user?.id && <span>Você: </span>}{' '}
+						{room.chat_messages[0].content === 'ATTACHMENT_MESSAGE' ? (
+							<span className="inline-flex gap-2">
+								Envio um anexo <Paperclip className="size-3.5" />
+							</span>
+						) : (
+							room.chat_messages[0].content
+						)}
 					</p>
 				)}
 			</div>
