@@ -14,14 +14,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createRoom } from '@/_http/requests/chat/create-room';
 import { useUser } from '@/context/user-context';
 import { Loader2 } from 'lucide-react';
+import { usePresence } from '@/context/presence-context';
 
 interface IProps {
 	friend: IFriendshipWithFriend;
-	status: 'online' | 'offline';
 }
 
-export function FriendTableRow({ friend, status }: IProps) {
+export function FriendTableRow({ friend }: IProps) {
 	const { user } = useUser();
+	const { isUserOnline } = usePresence();
 
 	const navigate = useRouter();
 	const queryClient = useQueryClient();
@@ -50,7 +51,10 @@ export function FriendTableRow({ friend, status }: IProps) {
 							{friend.friend.avatar_url && <AvatarImage src={friend.friend.avatar_url} alt={friend.friend.username} />}
 							<AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
 						</Avatar>
-						<StatusBadge status={status} className="absolute -right-1 bottom-0" />
+						<StatusBadge
+							status={isUserOnline(friend.friend_id) ? 'online' : 'offline'}
+							className="absolute -right-1 bottom-0"
+						/>
 					</div>
 
 					<div className="flex flex-col">

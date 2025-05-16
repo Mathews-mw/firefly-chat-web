@@ -13,6 +13,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { PresenceContextProvider } from '@/context/presence-context';
 
 export default async function AppLayout({
 	children,
@@ -29,31 +30,33 @@ export default async function AppLayout({
 	}
 
 	return (
-		<SidebarProvider defaultOpen={defaultOpen}>
-			<AppSidebar />
-			<SidebarInset>
-				<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-					<div className="flex items-center gap-2 px-4">
-						<SidebarTrigger className="-ml-1" />
+		<PresenceContextProvider>
+			<SidebarProvider defaultOpen={defaultOpen}>
+				<AppSidebar />
+				<SidebarInset>
+					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+						<div className="flex items-center gap-2 px-4">
+							<SidebarTrigger className="-ml-1" />
 
-						<div className="bg-border mr-2 h-5 w-px" />
+							<div className="bg-border mr-2 h-5 w-px" />
 
-						<Breadcrumb>
-							<BreadcrumbList>
-								<BreadcrumbItem className="hidden md:block">
-									<BreadcrumbLink href="/home">Home</BreadcrumbLink>
-								</BreadcrumbItem>
-								<BreadcrumbSeparator className="hidden md:block" />
-								<BreadcrumbItem>
-									<BreadcrumbPage>Chats</BreadcrumbPage>
-								</BreadcrumbItem>
-							</BreadcrumbList>
-						</Breadcrumb>
-					</div>
-				</header>
+							<Breadcrumb>
+								<BreadcrumbList>
+									<BreadcrumbItem className="hidden md:block">
+										<BreadcrumbLink href="/home">Home</BreadcrumbLink>
+									</BreadcrumbItem>
+									<BreadcrumbSeparator className="hidden md:block" />
+									<BreadcrumbItem>
+										<BreadcrumbPage>Chats</BreadcrumbPage>
+									</BreadcrumbItem>
+								</BreadcrumbList>
+							</Breadcrumb>
+						</div>
+					</header>
 
-				<main className="flex min-h-0 flex-1 flex-col gap-4 p-4 pt-0">{children}</main>
-			</SidebarInset>
-		</SidebarProvider>
+					<main className="flex min-h-0 flex-1 flex-col gap-4 p-4 pt-0">{children}</main>
+				</SidebarInset>
+			</SidebarProvider>
+		</PresenceContextProvider>
 	);
 }

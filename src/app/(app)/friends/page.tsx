@@ -71,7 +71,7 @@ export default function FriendsPage() {
 					{data ? (
 						<TableBody>
 							{data?.friends.map((friend) => {
-								return <FriendTableRow key={friend.id} friend={friend} status="online" />;
+								return <FriendTableRow key={friend.id} friend={friend} />;
 							})}
 						</TableBody>
 					) : (
